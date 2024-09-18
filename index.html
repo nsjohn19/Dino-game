@@ -1,0 +1,315 @@
+<div id="game">
+  <div id="dino">
+    <div id="dino-body"></div>
+    <div id="dino-head"></div>
+    <div id="dino-tail"></div>
+  </div>
+  <div id="cactus">
+    <div class="arm left"></div>
+    <div class="arm right"></div>
+  </div>
+  <div id="score">Score: 0</div>
+  <div id="message"></div>
+</div>
+
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: #f7f7f7;
+    font-family: Arial, sans-serif;
+  }
+
+  #game {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Dinosaur Style */
+  #dino {
+    position: absolute;
+    bottom: 0;
+    left: 50px;
+    width: 30px;
+    height: 30px;
+  }
+
+  #dino-body {
+    position: absolute;
+    bottom: 0;
+    left: 5px;
+    width: 20px;
+    height: 20px;
+    background-color: #555;
+    border-radius: 3px;
+  }
+
+  #dino-head {
+    position: absolute;
+    bottom: 15px;
+    left: 15px;
+    width: 10px;
+    height: 10px;
+    background-color: #555;
+    border-radius: 50%;
+  }
+
+  #dino-tail {
+    position: absolute;
+    bottom: 5px;
+    left: -5px;
+    width: 10px;
+    height: 5px;
+    background-color: #555;
+    transform: skewX(-30deg);
+  }
+
+  #dino.jump {
+    animation: jump 0.5s forwards;
+  }
+
+  @keyframes jump {
+    0% {
+      bottom: 0;
+    }
+    50% {
+      bottom: 459px; /* Jump height remains the same */
+    }
+    100% {
+      bottom: 0;
+    }
+  }
+
+  /* Cactus Style - Reduced Size by 50% */
+  #cactus {
+    position: absolute;
+    bottom: 0;
+    left: 100%;
+    width: 10px;   /* Reduced from 20px */
+    height: 25px;  /* Reduced from 50px */
+    background-color: green;
+    border-radius: 3px;
+    animation: moveCactus 4s linear infinite;
+    animation-play-state: paused; /* Pause animation initially */
+  }
+
+  #cactus .arm {
+    position: absolute;
+    width: 5px;    /* Reduced from 10px */
+    height: 12px;  /* Reduced from 25px */
+    background-color: green;
+    border-radius: 3px;
+    top: 2px;      /* Adjusted from 5px */
+  }
+
+  #cactus .left {
+    left: -4px;    /* Adjusted from -8px */
+    transform: rotate(-30deg);
+  }
+
+  #cactus .right {
+    right: -4px;   /* Adjusted from -8px */
+    transform: rotate(30deg);
+  }
+
+  @keyframes moveCactus {
+    0% {
+      left: 100%;
+    }
+    100% {
+      left: -50px;
+    }
+  }
+
+  #score {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    font-size: 24px;
+  }
+
+  /* Message Style */
+  #message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 36px;
+    font-weight: bold;
+    color: red;
+    text-align: center;
+    display: none;
+  }
+
+  @keyframes flashMessage {
+    0% {
+      opacity: 0;
+    }
+    25% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  const dino = document.getElementById("dino");
+  const cactus = document.getElementById("cactus");
+  const scoreElement = document.getElementById("score");
+  const messageElement = document.getElementById("message");
+  let score = 0;
+  let gameOver = false;
+  let gameStarted = false;
+
+  // Sound Effects
+  function playLaughGiggle() {
+    // Simulate a laugh giggle using multiple beeps
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const frequencies = [600, 550, 500, 450, 500, 550, 600];
+    let time = context.currentTime;
+
+    frequencies.forEach((freq) => {
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = "square";
+      oscillator.frequency.value = freq;
+      gainNode.gain.value = 0.1;
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(time);
+      oscillator.stop(time + 0.1);
+      time += 0.1;
+    });
+  }
+
+  function playJumpSound() {
+    // Play jump sound
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const oscillator = context.createOscillator();
+    oscillator.type = "square";
+    oscillator.frequency.value = 600;
+    oscillator.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + 0.1);
+  }
+
+  // Event listeners for keypress and touch
+  document.addEventListener("keydown", function(event) {
+    if (event.code === "Space" || event.code === "ArrowUp") {
+      jump();
+    }
+  });
+
+  document.addEventListener("touchstart", function(event) {
+    jump();
+  });
+
+  function jump() {
+    if (!dino.classList.contains("jump") && !gameOver && gameStarted) {
+      dino.classList.add("jump");
+
+      // Play jump sound
+      playJumpSound();
+
+      setTimeout(function() {
+        dino.classList.remove("jump");
+      }, 500);
+    }
+  }
+
+  function startGame() {
+    messageElement.innerText = "Starting";
+    messageElement.style.display = "block";
+    messageElement.style.animation = "flashMessage 1s ease";
+
+    setTimeout(function() {
+      messageElement.style.display = "none";
+      cactus.style.animationPlayState = "running"; // Start cactus animation
+      gameStarted = true;
+    }, 1000);
+  }
+
+  let isAlive = setInterval(function() {
+    if (gameStarted) {
+      // Get current positions
+      let dinoRect = dino.getBoundingClientRect();
+      let cactusRect = cactus.getBoundingClientRect();
+
+      // Collision detection
+      if (
+        cactusRect.left < dinoRect.right - 5 &&
+        cactusRect.right > dinoRect.left + 5 &&
+        dinoRect.bottom >= cactusRect.top + 5
+      ) {
+        if (!gameOver) {
+          // Play collision sound
+          playLaughGiggle();
+
+          gameOver = true;
+          gameStarted = false;
+          cactus.style.animationPlayState = "paused"; // Pause cactus animation
+          showGameOverMessages();
+        }
+      } else if (cactusRect.right < dinoRect.left && !cactus.passed && !gameOver) {
+        // Cactus has passed the dinosaur
+        score++;
+        scoreElement.innerText = "Score: " + score;
+        cactus.passed = true; // Ensure score increments only once per cactus
+      } else if (cactusRect.right < 0) {
+        // Cactus is off screen, reset its position
+        cactus.passed = false;
+      }
+    }
+  }, 10);
+
+  function showGameOverMessages() {
+    // Display first message
+    messageElement.innerText = "Game over u loser 🤣";
+    messageElement.style.display = "block";
+    messageElement.style.animation = "flashMessage 1s ease";
+
+    setTimeout(function() {
+      // Display second message
+      messageElement.innerText = "Try Again SILLY🤡";
+      messageElement.style.animation = "flashMessage 1s ease";
+    }, 1500);
+
+    setTimeout(function() {
+      // Hide message and restart game
+      messageElement.style.display = "none";
+      resetGame();
+    }, 3000);
+  }
+
+  function resetGame() {
+    // Reset score
+    score = 0;
+    scoreElement.innerText = "Score: " + score;
+
+    // Reset cactus animation
+    cactus.style.animation = "none";
+    void cactus.offsetWidth; // Trigger reflow
+    cactus.style.animation = "moveCactus 4s linear infinite";
+    cactus.style.animationPlayState = "paused"; // Pause animation initially
+    cactus.style.left = "100%"; // Reset position
+
+    // Reset game state
+    gameOver = false;
+
+    // Restart game
+    setTimeout(startGame, 500); // Delay before restarting
+  }
+
+  // Start the game initially
+  startGame();
+</script>
